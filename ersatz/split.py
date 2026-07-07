@@ -45,6 +45,12 @@ class DefaultArgs():
 
 
 def load_model(checkpoint_path):
+    # ersatz checkpoints pickle an argparse.Namespace ('args') alongside the weights, which
+    # torch>=2.6's weights_only=True default refuses to unpickle. Allowlist just that one
+    # class so unpickling stays restricted (any other unexpected global is still rejected),
+    # rather than disabling the protection wholesale with weights_only=False or relying on a
+    # global TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD env override.
+    torch.serialization.add_safe_globals([argparse.Namespace])
     model_dict = torch.load(checkpoint_path, map_location=torch.device('cpu'))
     tokenizer = SentencePiece(serialization=model_dict['tokenizer'])
     model = ErsatzTransformer(tokenizer, model_dict['args'])
